@@ -7,7 +7,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:weather_app/text.dart';
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
 }
 
 class WeatherPage extends StatefulWidget {
-  const WeatherPage({super.key});
+  const WeatherPage({Key? key}) : super(key: key);
 
   @override
   // ignore: library_private_types_in_public_api
@@ -28,11 +28,13 @@ class WeatherPage extends StatefulWidget {
 
 class _WeatherPageState extends State<WeatherPage> {
   Map<String, dynamic> weatherData = {};
-  // String location = 'Null, Press Button';
   // ignore: non_constant_identifier_names
   String Address = 'search';
   double lat = 0.0;
   double lon = 0.0;
+  bool showBottomNav = false;
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -40,46 +42,43 @@ class _WeatherPageState extends State<WeatherPage> {
       Position position = await _getGeoLocationPosition();
       lat = position.latitude;
       lon = position.longitude;
-      GetAddressFromLatLong(position);
-      fetchWeatherData(lat, lon);
+      await GetAddressFromLatLong(position);
+      await fetchWeatherData(lat, lon);
+      setState(() {
+        _isLoading = false;
+      });
     });
   }
 
-  Future _getGeoLocationPosition() async {
+  Future<Position> _getGeoLocationPosition() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       await Geolocator.openLocationSettings();
-      return Future.error('Location services are disabled.');
+      throw 'Location services are disabled.';
     }
     permission = await Geolocator.requestPermission();
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        // your App should show an explanatory UI now.
-        return Future.error('Location permissions are denied');
+        throw 'Location permissions are denied';
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // Permissions are denied forever, handle appropriately.
-      return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
+      throw 'Location permissions are permanently denied, we cannot request permissions.';
     }
 
-    // When we reach here, permissions are granted and we can
-    // continue accessing the position of the device.
     return await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
   }
 
   // ignore: non_constant_identifier_names
-  Future GetAddressFromLatLong(Position position) async {
-    List placemarks =
+  Future<void> GetAddressFromLatLong(Position position) async {
+    List<Placemark> placemarks =
         await placemarkFromCoordinates(position.latitude, position.longitude);
     if (kDebugMode) {
       print(placemarks);
@@ -114,46 +113,58 @@ class _WeatherPageState extends State<WeatherPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Weather App'),
-      ),
-      body: Center(
-        child: weatherData.isEmpty
-            ? const CircularProgressIndicator()
-            : SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextPage(
-                          textIcon: Icons.brightness_medium,
-                          value:
-                              'Weather: ${weatherData['weather'][0]['description']}'),
-                      TextPage(
-                          textIcon: Icons.thermostat,
-                          value:
-                              'Temperature: ${weatherData['main']['temp']} K'),
-                      TextPage(
-                          textIcon: Icons.thermostat,
-                          value:
-                              'Humidity: ${weatherData['main']['humidity']}%'),
-                      TextPage(
-                          textIcon: Icons.wind_power_outlined,
-                          value:
-                              'Wind Speed: ${weatherData['wind']['speed']} m/s'),
-                      TextPage(
-                        textIcon: Icons.location_city,
-                        value: 'Country: ${weatherData['sys']['country']} ',
-                      ),
-                      TextPage(
-                          textIcon: Icons.location_on,
-                          value: 'Location: ${weatherData['name']} '),
-                    ],
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/logos/background.jpeg'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Center(
+          child: _isLoading
+              ? const CircularProgressIndicator()
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextPage(
+                          value: 'Country: ${weatherData['sys']['country']} ',
+                        ),
+                        TextPage(
+                          value: 'Location: ${weatherData['name']} ',
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+        ),
       ),
+      bottomNavigationBar: _isLoading
+          ? null
+          : BottomNavigationBar(
+            type: BottomNavigationBarType.fixed, 
+              items: <BottomNavigationBarItem>[
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.brightness_medium),
+                  label: '${weatherData['weather'][0]['description']}',
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.thermostat),
+                  label: ' ${weatherData['main']['temp']} K',
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.water_drop),
+                  label: ' ${weatherData['main']['humidity']} humidity',
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.wind_power_outlined),
+                  label: '${weatherData['wind']['speed']} m/s',
+                ),
+                
+              ],
+            ),
     );
   }
 }
