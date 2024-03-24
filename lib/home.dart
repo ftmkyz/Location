@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -93,7 +94,7 @@ class _WeatherPageState extends State<WeatherPage> {
     var url = Uri.parse(
         'https://open-weather13.p.rapidapi.com/city/latlon/$latitude/$longitude');
     var headers = {
-      'X-RapidAPI-Key': 'Key',
+      'X-RapidAPI-Key': 'key',
       'X-RapidAPI-Host': 'host'
     };
 
@@ -120,6 +121,7 @@ class _WeatherPageState extends State<WeatherPage> {
             fit: BoxFit.cover,
           ),
         ),
+        
         child: Center(
           child: _isLoading
               ? const CircularProgressIndicator()
@@ -129,6 +131,13 @@ class _WeatherPageState extends State<WeatherPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 1.8, sigmaY: 1.8),
+                          child: Container(
+                            decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.0)),
+                          ),
+                        ),
                         TextPage(
                           value: 'Country: ${weatherData['sys']['country']} ',
                         ),
@@ -144,7 +153,7 @@ class _WeatherPageState extends State<WeatherPage> {
       bottomNavigationBar: _isLoading
           ? null
           : BottomNavigationBar(
-            type: BottomNavigationBarType.fixed, 
+              type: BottomNavigationBarType.fixed,
               items: <BottomNavigationBarItem>[
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.brightness_medium),
@@ -162,7 +171,6 @@ class _WeatherPageState extends State<WeatherPage> {
                   icon: const Icon(Icons.wind_power_outlined),
                   label: '${weatherData['wind']['speed']} m/s',
                 ),
-                
               ],
             ),
     );
